@@ -12,7 +12,7 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         url: "https://www.facebook.com/v18.0/dialog/oauth",
         params: {
-          scope: "instagram_basic,instagram_manage_comments,instagram_manage_insights,pages_show_list,pages_read_engagement",
+          scope: "instagram_basic,instagram_manage_comments,pages_show_list,pages_read_engagement",
           response_type: "code",
         },
       },
