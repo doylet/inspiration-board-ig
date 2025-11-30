@@ -19,11 +19,18 @@ export const authOptions: NextAuthOptions = {
       token: {
         url: "https://graph.facebook.com/v18.0/oauth/access_token",
         async request({ params, provider }) {
-          logger.debug(CONTEXT, "Requesting access token");
-          const response = await fetch(
-            `https://graph.facebook.com/v18.0/oauth/access_token?client_id=${provider.clientId}&client_secret=${provider.clientSecret}&code=${params.code}&redirect_uri=${params.redirect_uri}`
-          );
+          logger.debug(CONTEXT, "Requesting access token", { code: params.code?.substring(0, 10) });
+          
+          const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?client_id=${provider.clientId}&client_secret=${provider.clientSecret}&code=${params.code}&redirect_uri=${params.redirect_uri}`;
+          
+          const response = await fetch(tokenUrl);
           const tokens = await response.json();
+          
+          if (!response.ok || tokens.error) {
+            logger.error(CONTEXT, "Token exchange failed", { error: tokens.error || tokens });
+            throw new Error(tokens.error?.message || "Failed to exchange code for token");
+          }
+          
           logger.info(CONTEXT, "Received access token");
           return { tokens };
         },
@@ -39,17 +46,32 @@ export const authOptions: NextAuthOptions = {
           );
           const meData = await meResponse.json();
           
+          if (meData.error) {
+            logger.error(CONTEXT, "Failed to fetch Facebook user", { error: meData.error });
+            throw new Error(meData.error.message || "Failed to fetch user");
+          }
+          
+          logger.debug(CONTEXT, "Fetched Facebook user", { fbUserId: meData.id });
+          
           // Get Instagram Business Account connected to their page
           const accountsResponse = await fetch(
             `https://graph.facebook.com/v18.0/me/accounts?fields=instagram_business_account{id,username,profile_picture_url}&access_token=${tokens.access_token}`
           );
           const accountsData = await accountsResponse.json();
           
+          if (accountsData.error) {
+            logger.error(CONTEXT, "Failed to fetch pages", { error: accountsData.error });
+            throw new Error(accountsData.error.message || "Failed to fetch pages");
+          }
+          
           const igAccount = accountsData.data?.[0]?.instagram_business_account;
           
           if (!igAccount) {
-            logger.error(CONTEXT, "No Instagram Business Account found");
-            throw new Error("No Instagram Business Account connected");
+            logger.error(CONTEXT, "No Instagram Business Account found", { 
+              pagesCount: accountsData.data?.length || 0,
+              hasPages: !!accountsData.data?.length 
+            });
+            throw new Error("No Instagram Business Account connected to your Facebook Page");
           }
           
           logger.info(CONTEXT, "Successfully fetched Instagram account", {
