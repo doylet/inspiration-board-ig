@@ -1,0 +1,23 @@
+runtime: python312
+
+instance_class: F1
+
+env_variables:
+  META_APP_ID: "1971189146944172"
+  META_APP_SECRET: "bd112f95574dc8c2be4169f79abbab0f"
+  WEBHOOK_VERIFY_TOKEN: "meta_notifications_verify_token_2025"
+  WEBHOOK_URL: "https://inspiration-board-ig.uc.r.appspot.com"
+
+entrypoint: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 5
+  target_cpu_utilization: 0.65
+  target_throughput_utilization: 0.7
+
+handlers:
+- url: /.*
+  secure: always
+  redirect_http_response_code: 301
+  script: auto
