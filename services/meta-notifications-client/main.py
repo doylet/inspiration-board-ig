@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import requests
 from pydantic import BaseModel
 from typing import Optional
+import uvicorn
 
 # Load environment variables
 load_dotenv()
@@ -153,10 +154,7 @@ async def receive_webhook(request: Request):
         return PlainTextResponse(content='EVENT_RECEIVED', status_code=200)
     else:
         logger.warning('[Webhook] Invalid object type', extra={'object': data.get('object')})
-        raise HTTPException(status_code=404, detail='Not Found'), 200
-    else:
-        logger.warning('[Webhook] Invalid object type', extra={'object': data.get('object')})
-        return 'Not Found', 404
+        raise HTTPException(status_code=404, detail='Not Found')
 
 
 def handle_comment(value):
@@ -175,6 +173,12 @@ def handle_media(value):
     """Handle media events"""
     logger.info('[Event:Media] Media event received', extra={'value': value})
     # Add your media handling logic here
+
+def handle_story_insights(value):
+    """Handle story insights events"""
+    logger.info('[Event:StoryInsights] Story insights event received', extra={'value': value})
+    # Add your story insights handling logic here
+
 @app.post('/subscribe')
 async def subscribe_webhook(data: SubscribeRequest):
     """Subscribe to webhooks"""
@@ -213,14 +217,13 @@ async def subscribe_webhook(data: SubscribeRequest):
                 'error': 'Failed to subscribe to webhooks',
                 'details': e.response.json() if e.response else str(e)
             }
-        )error('[Subscribe] Subscription failed', extra={
-            'error': str(e),
-            'response': e.response.json() if e.response else None
-        })
+        )
         
         return jsonify({
             'error': 'Failed to subscribe to webhooks',
             'details': e.response.json() if e.response else str(e)
+        }), 500
+
 @app.get('/subscriptions')
 async def get_subscriptions(access_token: str = Query(..., description="Access token for authentication")):
     """Get current webhook subscriptions"""
@@ -251,13 +254,14 @@ async def get_subscriptions(access_token: str = Query(..., description="Access t
                 'error': 'Failed to get subscriptions',
                 'details': e.response.json() if e.response else str(e)
             }
-        )jsonify({
+        )
+    
+        return jsonify({
             'error': 'Failed to get subscriptions',
             'details': e.response.json() if e.response else str(e)
         }), 500
 
 
-@app.route('/subscribe', methods=['DELETE'])
 @app.delete('/subscribe')
 async def unsubscribe_webhook(data: UnsubscribeRequest):
     """Unsubscribe from webhooks"""
@@ -308,7 +312,6 @@ if __name__ == '__main__':
     
     app.run(host='0.0.0.0', port=port, debug=os.getenv('DEBUG', 'False').lower() == 'true')
 if __name__ == '__main__':
-    import uvicorn
     
     port = int(os.getenv('PORT', 8080))
     logger.info('[Server] Meta Notifications Client starting', extra={

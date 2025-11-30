@@ -1,0 +1,16 @@
+steps:
+  # Install Python dependencies
+  - name: 'python:3.12'
+    entrypoint: pip
+    args: ['install', '-r', 'services/meta-notifications-client/requirements.txt', '--user']
+
+  # Deploy to App Engine
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: 
+      - 'app'
+      - 'deploy'
+      - 'services/meta-notifications-client/app.yaml'
+      - '--quiet'
+      - '--project=inspiration-board-ig'
+
+timeout: '1200s'
