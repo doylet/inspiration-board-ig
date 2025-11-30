@@ -19,12 +19,12 @@ export async function GET() {
       );
     }
 
-    const { accessToken } = session;
-    logger.debug(CONTEXT, "Session validated, fetching user profile");
+    const { accessToken, userId } = session;
+    logger.debug(CONTEXT, "Session validated, fetching user profile", { userId });
 
-    // Fetch user profile information
-    const url = `https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${accessToken}`;
-    logger.debug(CONTEXT, "Calling Instagram API", { endpoint: "me" });
+    // Fetch Instagram Business Account info
+    const url = `https://graph.facebook.com/v18.0/${userId}?fields=id,username,profile_picture_url,followers_count,follows_count,media_count&access_token=${accessToken}`;
+    logger.debug(CONTEXT, "Calling Instagram API", { endpoint: userId });
     
     const response = await fetch(url);
 
@@ -44,11 +44,11 @@ export async function GET() {
     logger.info(CONTEXT, "Successfully fetched user profile", {
       userId: data.id,
       username: data.username,
-      accountType: data.account_type,
       mediaCount: data.media_count,
     });
 
-    return NextResponse.json(data);
+    // Add account_type for compatibility with existing UI
+    return NextResponse.json({ ...data, account_type: "BUSINESS" });
   } catch (error) {
     logger.error(CONTEXT, "Unexpected error", {
       error: error instanceof Error ? error.message : String(error),

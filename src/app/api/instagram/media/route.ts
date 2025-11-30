@@ -22,14 +22,14 @@ export async function GET() {
       );
     }
 
-    const { accessToken } = session;
+    const { accessToken, userId } = session;
     logger.debug(CONTEXT, "Session validated, fetching media", {
-      userId: session.userId,
+      userId,
     });
 
-    // Fetch user's media (posts)
-    const url = `https://graph.instagram.com/me/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption,timestamp&access_token=${accessToken}`;
-    logger.debug(CONTEXT, "Calling Instagram API", { endpoint: "me/media" });
+    // Fetch user's media (posts) from Instagram Business Account
+    const url = `https://graph.facebook.com/v18.0/${userId}/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption,timestamp&access_token=${accessToken}`;
+    logger.debug(CONTEXT, "Calling Instagram API", { endpoint: `${userId}/media` });
     
     const response = await fetch(url);
 
