@@ -5,6 +5,12 @@ declare module "next-auth" {
     accessToken: string;
     userId: string;
   }
+
+  interface Profile {
+    id: string;
+    username?: string;
+    account_type?: string;
+  }
 }
 
 declare module "next-auth/jwt" {
