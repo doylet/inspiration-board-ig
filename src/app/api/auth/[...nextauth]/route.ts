@@ -10,36 +10,59 @@ export const authOptions: NextAuthOptions = {
       name: "Instagram",
       type: "oauth",
       authorization: {
-        url: "https://api.instagram.com/oauth/authorize",
+        url: "https://www.facebook.com/v18.0/dialog/oauth",
         params: {
-          scope: "user_profile,user_media",
+          scope: "instagram_basic,instagram_manage_comments,instagram_manage_insights,pages_show_list,pages_read_engagement",
           response_type: "code",
         },
       },
-      token: "https://api.instagram.com/oauth/access_token",
+      token: {
+        url: "https://graph.facebook.com/v18.0/oauth/access_token",
+        async request({ params, provider }) {
+          logger.debug(CONTEXT, "Requesting access token");
+          const response = await fetch(
+            `https://graph.facebook.com/v18.0/oauth/access_token?client_id=${provider.clientId}&client_secret=${provider.clientSecret}&code=${params.code}&redirect_uri=${params.redirect_uri}`
+          );
+          const tokens = await response.json();
+          logger.info(CONTEXT, "Received access token");
+          return { tokens };
+        },
+      },
       userinfo: {
-        url: "https://graph.instagram.com/me",
+        url: "https://graph.facebook.com/v18.0/me",
         async request({ tokens }) {
-          logger.debug(CONTEXT, "Fetching user info with access token");
-          const url = `https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${tokens.access_token}`;
+          logger.debug(CONTEXT, "Fetching user info");
           
-          const response = await fetch(url);
-          const data = await response.json();
+          // Get Facebook user and their pages
+          const meResponse = await fetch(
+            `https://graph.facebook.com/v18.0/me?fields=id,name&access_token=${tokens.access_token}`
+          );
+          const meData = await meResponse.json();
           
-          if (!response.ok) {
-            logger.error(CONTEXT, "Failed to fetch user info", {
-              status: response.status,
-              error: data,
-            });
-          } else {
-            logger.info(CONTEXT, "Successfully fetched user info", {
-              userId: data.id,
-              username: data.username,
-              accountType: data.account_type,
-            });
+          // Get Instagram Business Account connected to their page
+          const accountsResponse = await fetch(
+            `https://graph.facebook.com/v18.0/me/accounts?fields=instagram_business_account{id,username,profile_picture_url}&access_token=${tokens.access_token}`
+          );
+          const accountsData = await accountsResponse.json();
+          
+          const igAccount = accountsData.data?.[0]?.instagram_business_account;
+          
+          if (!igAccount) {
+            logger.error(CONTEXT, "No Instagram Business Account found");
+            throw new Error("No Instagram Business Account connected");
           }
           
-          return data;
+          logger.info(CONTEXT, "Successfully fetched Instagram account", {
+            igUserId: igAccount.id,
+            username: igAccount.username,
+          });
+          
+          return {
+            id: igAccount.id,
+            username: igAccount.username,
+            name: igAccount.username,
+            picture: igAccount.profile_picture_url,
+          };
         },
       },
       clientId: process.env.INSTAGRAM_APP_ID!,
@@ -48,9 +71,9 @@ export const authOptions: NextAuthOptions = {
         logger.debug(CONTEXT, "Processing profile", { profileId: profile.id });
         return {
           id: profile.id,
-          name: profile.username,
+          name: profile.username || profile.name,
           email: null,
-          image: null,
+          image: profile.picture || null,
         };
       },
     },
