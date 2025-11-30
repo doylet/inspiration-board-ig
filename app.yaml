@@ -5,7 +5,7 @@ service: frontend
 instance_class: F2
 
 env_variables:
-  INSTAGRAM_APP_ID: "1971189146944172"
+  INSTAGRAM_APP_ID: "1997735587462331"
   INSTAGRAM_APP_SECRET: "bd112f95574dc8c2be4169f79abbab0f"
   NEXTAUTH_URL: "https://frontend-dot-inspiration-board-ig.uc.r.appspot.com"
   NEXTAUTH_SECRET: "y6aLzqxzmfnGcRdbaP5wSOvrX/R/zoP4dhks/f6Gkww="
