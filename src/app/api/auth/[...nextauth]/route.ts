@@ -21,7 +21,12 @@ export const authOptions: NextAuthOptions = {
         async request({ params, provider }) {
           logger.debug(CONTEXT, "Requesting access token", { code: params.code?.substring(0, 10) });
           
-          const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?client_id=${provider.clientId}&client_secret=${provider.clientSecret}&code=${params.code}&redirect_uri=${params.redirect_uri}`;
+          // Construct absolute redirect URI
+          const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/callback/instagram`;
+          
+          const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?client_id=${provider.clientId}&client_secret=${provider.clientSecret}&code=${params.code}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+          
+          logger.debug(CONTEXT, "Token request", { redirectUri });
           
           const response = await fetch(tokenUrl);
           const tokens = await response.json();
